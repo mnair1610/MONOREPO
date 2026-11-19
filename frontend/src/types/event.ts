@@ -7,8 +7,4 @@ export interface BaseEvent {
   source: string;
 }
 
-// TODO (Exercise 4): Add WebhookEvent type here (same definition as api/ and worker/)
-// WebhookEvent should extend BaseEvent with:
-// - type: "payment.completed" | "payment.failed" | "refund.initiated"
-// - payload: Record<string, unknown>
-// - retryCount: number (default 0)
+// WebhookEvent extends BaseEvent and is defined in ./webhookEvent.ts.
