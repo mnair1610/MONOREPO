@@ -1,4 +1,5 @@
 import express from 'express';
+import { webhookRouter } from './routes/webhooks';
 
 const app = express();
 app.use(express.json());
@@ -12,7 +13,7 @@ app.get('/api/events', (_req, res) => {
   res.json({ data: [], count: 0 });
 });
 
-// TODO (Exercise 4): Add POST /api/webhooks endpoint for WebhookEvent
+app.use('/api/webhooks', webhookRouter);
 
 const PORT = process.env.PORT ?? 3000;
 app.listen(PORT, () => {
