@@ -20,6 +20,4 @@ export async function processPaymentInitiated(payload: {
   };
 }
 
-// TODO (Exercise 4): Add WebhookEventProcessor class in a new file:
-// src/processors/webhookEventProcessor.ts
-// It should route by WebhookEvent.type to appropriate handlers
+// Webhook events are routed by WebhookEventProcessor in webhookEventProcessor.ts.
