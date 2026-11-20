@@ -1,9 +1,11 @@
 // Worker service — background job processor
-// Exercise 4: Add WebhookEvent processing support
+import { WebhookEventProcessor } from './processors/webhookEventProcessor';
+
+const webhookEventProcessor = new WebhookEventProcessor();
 
 console.log('Worker service started');
 console.log('Listening for jobs...');
-console.log('TODO: Add WebhookEventProcessor when implementing Exercise 4');
+console.log(`WebhookEventProcessor ready (${webhookEventProcessor.constructor.name})`);
 
 // Keep the process alive
 setInterval(() => {
