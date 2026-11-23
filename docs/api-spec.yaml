@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Event API
+  version: 1.0.0
+  description: |
+    Express REST API for the monorepo (`api/` service). Receives incoming events.
+
+    Notes derived from the source:
+    * Only `POST /api/webhooks` is implemented under `/api/webhooks`. There is
+      no `GET /api/webhooks` handler yet, although the frontend's
+      `useWebhookEvents` hook requests one.
+    * Accepted webhook events are held in an in-memory store
+      (`api/src/storage/eventStore.ts`); they are lost on restart and are not
+      yet forwarded to the worker service.
+    * `GET /api/events` is a stub that always returns an empty list.
+servers:
+  - url: http://localhost:3000
+    description: Local development (port from `PORT`, default 3000)
+tags:
+  - name: Health
+  - name: Events
+  - name: Webhooks
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Service health check
+      responses:
+        '200':
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                service: api
+  /api/events:
+    get:
+      tags: [Events]
+      operationId: listEvents
+      summary: List events
+      description: Placeholder endpoint. Currently always returns an empty list.
+      responses:
+        '200':
+          description: Event list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+              example:
+                data: []
+                count: 0
+  /api/webhooks:
+    post:
+      tags: [Webhooks]
+      operationId: createWebhookEvent
+      summary: Submit a webhook event
+      description: |
+        Validates the body against `webhookEventSchema` (zod) and stores the
+        event. `timestamp` is coerced from an ISO-8601 string (or any value
+        accepted by `new Date()`) to a date. `retryCount` defaults to `0` when
+        omitted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEventInput'
+            example:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              type: payment.completed
+              timestamp: '2026-11-16T09:00:00.000Z'
+              payload:
+                amount: 100
+                currency: USD
+              source: billing
+      responses:
+        '201':
+          description: Event accepted and stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEventCreatedResponse'
+              example:
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  type: payment.completed
+                  timestamp: '2026-11-16T09:00:00.000Z'
+                  payload:
+                    amount: 100
+                    currency: USD
+                  source: billing
+                  retryCount: 0
+        '400':
+          description: Body failed validation. Nothing is stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidWebhookEventError'
+              example:
+                error: Invalid webhook event
+                details:
+                  formErrors: []
+                  fieldErrors:
+                    type:
+                      - "Invalid enum value. Expected 'payment.completed' | 'payment.failed' | 'refund.initiated', received 'payment.initiated'"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        service:
+          type: string
+          enum: [api]
+    EventListResponse:
+      type: object
+      required: [data, count]
+      properties:
+        data:
+          type: array
+          items: {}
+        count:
+          type: integer
+          minimum: 0
+    WebhookEventType:
+      type: string
+      enum:
+        - payment.completed
+        - payment.failed
+        - refund.initiated
+    WebhookEventInput:
+      type: object
+      description: Request body, as validated by `webhookEventSchema`.
+      required: [id, type, timestamp, payload, source]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/WebhookEventType'
+        timestamp:
+          type: string
+          format: date-time
+          description: Coerced to a date by the server.
+        payload:
+          type: object
+          additionalProperties: true
+          description: Arbitrary JSON object (`z.record(z.unknown())`).
+        source:
+          type: string
+          minLength: 1
+          description: Name of the system that emitted the event.
+        retryCount:
+          type: integer
+          minimum: 0
+          default: 0
+    WebhookEvent:
+      type: object
+      description: A stored webhook event (`api/src/types/webhookEvent.ts`).
+      required: [id, type, timestamp, payload, source, retryCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/WebhookEventType'
+        timestamp:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+        source:
+          type: string
+        retryCount:
+          type: integer
+          minimum: 0
+    WebhookEventCreatedResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEvent'
+    InvalidWebhookEventError:
+      type: object
+      required: [error, details]
+      properties:
+        error:
+          type: string
+          enum: [Invalid webhook event]
+        details:
+          type: object
+          description: Output of zod's `error.flatten()`.
+          required: [formErrors, fieldErrors]
+          properties:
+            formErrors:
+              type: array
+              items:
+                type: string
+            fieldErrors:
+              type: object
+              description: Map of field name to list of error messages.
+              additionalProperties:
+                type: array
+                items:
+                  type: string
