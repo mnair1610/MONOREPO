@@ -1,0 +1,8 @@
+{
+  "name": "monorepo",
+  "private": true,
+  "description": "Exercise 4 monorepo — run all three service test suites together",
+  "scripts": {
+    "test:integration": "npm test --prefix api && npm test --prefix worker && npm test --prefix frontend"
+  }
+}
